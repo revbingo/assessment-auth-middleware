@@ -33,7 +33,7 @@ describe("A request with a valid access token", () => {
     const token = await tokenGenerator.createSignedJWT(claims);
     const req = createRequest({
       headers: {
-        authorizationinfo: token,
+        Authorization: `Bearer ${token}`,
       },
     });
 
