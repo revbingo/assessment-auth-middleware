@@ -1,4 +1,5 @@
-import { verify, decode, JwtPayload } from "jsonwebtoken";
+import { verify, decode, JwtPayload, Jwt, Algorithm, VerifyOptions } from "jsonwebtoken";
+import jwksClient from 'jwks-rsa';
 import * as express from "express";
 
 declare module "express" {
@@ -27,12 +28,35 @@ const authorize =
 
       if (!matches) throw new Error("Token does not match expected format");
 
-      req.user = decode(matches[1], { json: true });
+      req.user = await verifyToken(matches[1], options);
 
       next();
     } catch (e: any) {
       res.sendStatus(401);
     }
   }
+
+const fetchKey =
+  (issuer: string) =>
+    (header: any, callback: (err, signingKey) => void) => {
+      const client = jwksClient({ jwksUri: `${issuer}/.well-known/jwks.json` });
+      client.getSigningKey(header.kid, (err, key) => {
+        callback(err, key.getPublicKey());
+      });
+    };
+
+const verifyToken =
+  async (token: string, options: Options) =>
+    new Promise((resolve, reject) => {
+      const verifyOptions: VerifyOptions = {
+        issuer: options.issuer,
+        audience: options.audience,
+        algorithms: [options.algorithms as Algorithm]
+      }
+      verify(token, fetchKey(options.issuer), verifyOptions, (err, key) => {
+        err ? reject(err) : resolve(key)
+      })
+    }
+  );
 
 export default authorize;

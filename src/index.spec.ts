@@ -90,6 +90,7 @@ describe('A request with missing or invalid token', () => {
 
     await authorise(options)(req, res, next);
     expect(res._getStatusCode()).toEqual(401);
+    expect(next).not.toHaveBeenCalled();
   });
 
   test("should send a 401 response if the token is not valid base64", async () => {
@@ -103,5 +104,82 @@ describe('A request with missing or invalid token', () => {
 
     await authorise(options)(req, res, next);
     expect(res._getStatusCode()).toEqual(401);
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  test("should send 401 if the token has expired", async () => {
+    const res = createResponse();
+    const next = jest.fn();
+    const req = createRequest({
+      headers: {
+        authorization: `Bearer this_could??be.base.sixtyfour=`
+      },
+    });
+
+    await authorise(options)(req, res, next);
+    expect(res._getStatusCode()).toEqual(401);
+    expect(next).not.toHaveBeenCalled();
+  });
+});
+
+describe('A request with invalid claims', () => {
+  test("sends 401 if token is expired", async () => {
+    const res = createResponse();
+    const next = jest.fn();
+    const token = await tokenGenerator.createSignedJWT({
+      sub: "foo",
+      iss: options.issuer,
+      aud: options.audience,
+      exp: currentTime - 10
+    });
+    const req = createRequest({
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    await authorise(options)(req, res, next);
+    expect(res._getStatusCode()).toEqual(401);
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  test("sends 401 if audience does not match", async () => {
+    const res = createResponse();
+    const next = jest.fn();
+    const token = await tokenGenerator.createSignedJWT({
+      sub: "foo",
+      iss: options.issuer,
+      aud: 'anotheraudience',
+      exp: currentTime + 10
+    });
+    const req = createRequest({
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    await authorise(options)(req, res, next);
+    expect(res._getStatusCode()).toEqual(401);
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  test("sends 401 if issuer does not match", async () => {
+    const res = createResponse();
+    const next = jest.fn();
+    const token = await tokenGenerator.createSignedJWT({
+      sub: "foo",
+      iss: 'nottheissuer',
+      aud: options.audience,
+      exp: currentTime + 10
+    });
+    const req = createRequest({
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    await authorise(options)(req, res, next);
+    expect(res._getStatusCode()).toEqual(401);
+    expect(next).not.toHaveBeenCalled();
   });
 });
