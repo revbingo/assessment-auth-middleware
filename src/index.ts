@@ -23,6 +23,7 @@ const authorize =
     const [_, token] = req.headers['authorization'].match(/Bearer (.*)/);
 
     req.user = decode(token, { json: true });
+    next();
   }
 
 export default authorize;

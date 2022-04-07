@@ -40,4 +40,18 @@ describe("A request with a valid access token", () => {
     await authorise(options)(req, res, next);
     expect(req).toHaveProperty("user", claims);
   });
+
+  test("should call next middleware after decoding", async () => {
+    const res = createResponse();
+    const next = jest.fn();
+    const token = await tokenGenerator.createSignedJWT(claims);
+    const req = createRequest({
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    await authorise(options)(req, res, next);
+    expect(next).toHaveBeenCalled();
+  });
 });
