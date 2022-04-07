@@ -1,6 +1,9 @@
 import { verify, decode, JwtPayload, Jwt, Algorithm, VerifyOptions } from "jsonwebtoken";
 import jwksClient from 'jwks-rsa';
 import * as express from "express";
+import { promisify } from 'util';
+
+const verifyAsync = promisify<string, any, VerifyOptions, JwtPayload>(verify);
 
 declare module "express" {
   interface Request {
@@ -31,9 +34,19 @@ const authorize =
       req.user = await verifyToken(matches[1], options);
 
       next();
-    } catch (e: any) {
+    } catch (e: unknown) {
       res.sendStatus(401);
     }
+  }
+
+const verifyToken =
+  async (token: string, options: Options) => {
+    const verifyOptions: VerifyOptions = {
+      issuer: options.issuer,
+      audience: options.audience,
+      algorithms: [options.algorithms as Algorithm]
+    }
+    return verifyAsync(token, fetchKey(options.issuer), verifyOptions)
   }
 
 const fetchKey =
@@ -44,19 +57,5 @@ const fetchKey =
         callback(err, key.getPublicKey());
       });
     };
-
-const verifyToken =
-  async (token: string, options: Options) =>
-    new Promise((resolve, reject) => {
-      const verifyOptions: VerifyOptions = {
-        issuer: options.issuer,
-        audience: options.audience,
-        algorithms: [options.algorithms as Algorithm]
-      }
-      verify(token, fetchKey(options.issuer), verifyOptions, (err, key) => {
-        err ? reject(err) : resolve(key)
-      })
-    }
-  );
 
 export default authorize;
