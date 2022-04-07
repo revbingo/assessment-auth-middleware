@@ -1,9 +1,9 @@
-import { Jwt } from "jsonwebtoken";
+import { verify, decode, JwtPayload } from "jsonwebtoken";
 import * as express from "express";
 
 declare module "express" {
   interface Request {
-    user?: Jwt;
+    user?: JwtPayload;
   }
 }
 
@@ -19,7 +19,10 @@ const authorize =
     req: express.Request,
     res: express.Response,
     next: express.NextFunction
-  ): Promise<void | express.Response> =>
-    Promise.reject("Not implemented");
+  ): Promise<void | express.Response> => {
+    const [_, token] = req.headers['authorization'].match(/Bearer (.*)/);
+
+    req.user = decode(token, { json: true });
+  }
 
 export default authorize;
