@@ -20,6 +20,10 @@ const authorize =
     res: express.Response,
     next: express.NextFunction
   ): Promise<void | express.Response> => {
+    if (!req.headers['authorization']) {
+      res.sendStatus(401);
+      return;
+    }
     const [_, token] = req.headers['authorization'].match(/Bearer (.*)/);
 
     req.user = decode(token, { json: true });

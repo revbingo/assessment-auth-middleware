@@ -54,4 +54,26 @@ describe("A request with a valid access token", () => {
     await authorise(options)(req, res, next);
     expect(next).toHaveBeenCalled();
   });
+
+  test("should send a 401 response if the token is missing", async () => {
+    const res = createResponse();
+    const next = jest.fn();
+    const req = createRequest({
+      headers: {},
+    });
+
+    await authorise(options)(req, res, next);
+    expect(res._getStatusCode()).toEqual(401);
+  });
+
+  test("does not call next middleware if token is missing", async () => {
+    const res = createResponse();
+    const next = jest.fn();
+    const req = createRequest({
+      headers: {},
+    });
+
+    await authorise(options)(req, res, next);
+    expect(next).not.toHaveBeenCalled();
+  });
 });
