@@ -54,7 +54,9 @@ describe("A request with a valid access token", () => {
     await authorise(options)(req, res, next);
     expect(next).toHaveBeenCalled();
   });
+});
 
+describe('A request with missing or invalid token', () => {
   test("should send a 401 response if the token is missing", async () => {
     const res = createResponse();
     const next = jest.fn();
@@ -75,5 +77,31 @@ describe("A request with a valid access token", () => {
 
     await authorise(options)(req, res, next);
     expect(next).not.toHaveBeenCalled();
+  });
+
+  test("should send a 401 response if the token does not contain two periods", async () => {
+    const res = createResponse();
+    const next = jest.fn();
+    const req = createRequest({
+      headers: {
+        authorization: `Bearer thisisnotavalidtoken`
+      },
+    });
+
+    await authorise(options)(req, res, next);
+    expect(res._getStatusCode()).toEqual(401);
+  });
+
+  test("should send a 401 response if the token is not valid base64", async () => {
+    const res = createResponse();
+    const next = jest.fn();
+    const req = createRequest({
+      headers: {
+        authorization: `Bearer this_could??be.base.sixtyfour=`
+      },
+    });
+
+    await authorise(options)(req, res, next);
+    expect(res._getStatusCode()).toEqual(401);
   });
 });
